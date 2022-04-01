@@ -22,7 +22,7 @@ type User struct {
 var tpls *template.Template
 var clientId string = "6827cba289b046ed823ed40ef537a468"
 var clientSecret string = "524e6d924d5548a999ce68acbe92a99d"
-var redirect string = "http://localhost:8080/profile"
+var redirect string = "https://listextract.herokuapp.com/profile"
 var access map[string]interface{}
 var songs []Song
 

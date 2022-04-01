@@ -1,7 +1,7 @@
 let body = document.querySelector("body");
 let btn = document.querySelector(".btn");
 let songs = [];
-const api_url = "http://localhost:8080";
+const api_url = "https://listextract.herokuapp.com";
 
 const getToken = async () => {
   let request = await fetch(`${api_url}/request-page`);
