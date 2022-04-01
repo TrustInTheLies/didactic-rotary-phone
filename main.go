@@ -67,6 +67,12 @@ func sendFile(w http.ResponseWriter, r *http.Request) {
 	if writeErr != nil {
 		log.Fatal(writeErr, "writing file error")
 	}
+	defer (func() {
+		deleteErr := os.Remove("songs.csv")
+		if deleteErr != nil {
+			log.Fatal(err, "removing error")
+		}
+	})()
 }
 
 func getFilePage(w http.ResponseWriter, r *http.Request) {
