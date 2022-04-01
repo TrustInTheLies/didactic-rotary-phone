@@ -2,24 +2,88 @@ package main
 
 import (
 	"encoding/base64"
+	"encoding/csv"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 )
+
+type User struct {
+	name string
+}
 
 var clientId string = "6827cba289b046ed823ed40ef537a468"
 var clientSecret string = "524e6d924d5548a999ce68acbe92a99d"
 var redirect string = "http://localhost:8080/profile"
 var access map[string]interface{}
+var songs []Song
 
+type Song struct {
+	Title  string
+	Artist string
+}
+
+// TODO: play with channels to make a request to get your own profile after receiving a token
+// like a .then() chain - https://www.newline.co/courses/build-a-spotify-connected-app/implementing-the-authorization-code-flow
 func main() {
+	fs := http.FileServer(http.Dir("static/"))
+	http.Handle("/static/", http.StripPrefix("static", fs))
 	http.HandleFunc("/login", login)
 	http.HandleFunc("/profile", sendCode)
 	http.HandleFunc("/refresh", refreshToken)
-	http.ListenAndServe(":8080", nil)
+	http.HandleFunc("/request-page", requestInfo)
+	http.HandleFunc("/send-list", getList)
+	err := http.ListenAndServe(":8080", nil)
+	if err != nil {
+		log.Fatal(err, "launching server error")
+	}
+}
+
+func outputFile() {
+	file, err := os.Create("songs.csv")
+	if err != nil {
+		log.Fatal(err, "creating file error")
+	}
+	defer file.Close()
+
+	w := csv.NewWriter(file)
+	defer w.Flush()
+
+	fmt.Println(len(songs))
+	fmt.Println(songs)
+	for _, song := range songs {
+		str := []string{"Title: " + song.Title, "Artist: " + song.Artist}
+		err := w.Write(str)
+		if err != nil {
+			log.Fatal(err, "writing to CSV error")
+		}
+	}
+
+}
+
+func getList(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "POST" {
+		fmt.Println()
+		err := json.NewDecoder(r.Body).Decode(&songs)
+		if err != nil {
+			log.Fatal(err, "decoding answer error")
+		}
+		outputFile()
+	}
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Headers", "*")
+
+}
+
+func requestInfo(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(fmt.Sprintf("%v", access["access_token"]))
 }
 
 func refreshToken(w http.ResponseWriter, r *http.Request) {
@@ -35,6 +99,7 @@ func refreshToken(w http.ResponseWriter, r *http.Request) {
 	auth := "Basic " + base64.StdEncoding.EncodeToString([]byte(clientId+":"+clientSecret))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("Authorization", auth)
+	req.Header.Set("Access-Control-Allow-Origin", "*")
 	do, sendErr := client.Do(req)
 	if sendErr != nil {
 		log.Fatal(sendErr)
@@ -43,7 +108,6 @@ func refreshToken(w http.ResponseWriter, r *http.Request) {
 	if decodErr != nil {
 		log.Fatal(decodErr, "decode error")
 	}
-	fmt.Fprint(w, access["access_token"])
 }
 
 func sendCode(w http.ResponseWriter, r *http.Request) {
@@ -54,7 +118,6 @@ func sendCode(w http.ResponseWriter, r *http.Request) {
 	}
 
 	code := strings.Join(params.Query()["code"], "")
-	fmt.Println(code)
 	data := url.Values{}
 	data.Set("grant_type", "authorization_code")
 	data.Set("code", code)
@@ -76,7 +139,7 @@ func sendCode(w http.ResponseWriter, r *http.Request) {
 	if decodErr != nil {
 		log.Fatal(decodErr, "decode error")
 	}
-	fmt.Fprint(w, access["access_token"])
+	http.Redirect(w, r, "/retrieve-songs", 301)
 }
 
 func login(w http.ResponseWriter, r *http.Request) {
@@ -92,11 +155,4 @@ func login(w http.ResponseWriter, r *http.Request) {
 	q.Add("show_dialog", "true")
 	req.URL.RawQuery = q.Encode()
 	http.Redirect(w, r, req.URL.String(), 301)
-	// fmt.Println(r)
-	//fmt.Println(req.URL.String())
-	//resp, clientErr := client.Do(req)
-	//if clientErr != nil {
-	//	return
-	//}
-	//fmt.Fprint(w, resp)
 }
