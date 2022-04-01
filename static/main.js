@@ -63,6 +63,7 @@ const getFile = async () => {
   link.setAttribute("download", "songs.csv");
   link.textContent = "Загрузить";
   body.append(link);
+  btn.setAttribute("disabled", true);
 };
 
 btn.addEventListener("click", async () => {

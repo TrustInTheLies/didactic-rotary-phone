@@ -55,6 +55,7 @@ func main() {
 }
 
 func sendFile(w http.ResponseWriter, r *http.Request) {
+	outputFile()
 	file, err := ioutil.ReadFile("songs.csv")
 	if err != nil {
 		log.Fatal(err, "file reading error")
@@ -76,18 +77,23 @@ func getFilePage(w http.ResponseWriter, r *http.Request) {
 }
 
 func startPage(w http.ResponseWriter, r *http.Request) {
-	err := tpls.ExecuteTemplate(w, "index.html", nil)
-	if err != nil {
-		log.Fatal(err, "executing template error")
+	if _, err := os.Stat("songs.csv"); err == nil {
+		err := os.Remove("songs.csv")
+		if err != nil {
+			log.Fatal(err, "deleting error")
+		}
+	}
+	tplsErr := tpls.ExecuteTemplate(w, "index.html", nil)
+	if tplsErr != nil {
+		log.Fatal(tplsErr, "executing template error")
 	}
 }
 
 func outputFile() {
-	file, err := os.Create("songs.csv")
-	if err != nil {
-		log.Fatal(err, "creating file error")
+	file, createErr := os.Create("songs.csv")
+	if createErr != nil {
+		log.Fatal(createErr, "creating file error")
 	}
-	defer file.Close()
 
 	w := csv.NewWriter(file)
 	defer w.Flush()
@@ -109,7 +115,6 @@ func getList(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Fatal(err, "decoding answer error")
 		}
-		outputFile()
 	}
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-Type", "application/json")
