@@ -1,3 +1,4 @@
+let body = document.querySelector("body");
 let btn = document.querySelector(".btn");
 let songs = [];
 const api_url = "http://localhost:8080";
@@ -51,10 +52,21 @@ const sendList = async () => {
     },
     body: JSON.stringify(createList()),
   });
-  // console.log(JSON.stringify(createList()));
+};
+
+const getFile = async () => {
+  let request = await fetch(`${api_url}/get-file`);
+  let response = request.blob();
+  let url = URL.createObjectURL(await response);
+  let link = document.createElement("a");
+  link.href = url;
+  link.setAttribute("download", "songs.csv");
+  link.textContent = "Загрузить";
+  body.append(link);
 };
 
 btn.addEventListener("click", async () => {
   await createArr();
   await sendList();
+  await getFile();
 });

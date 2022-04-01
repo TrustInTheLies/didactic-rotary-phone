@@ -1,21 +1,25 @@
 package main
 
 import (
+	"bytes"
 	"encoding/base64"
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
 	"os"
 	"strings"
+	"text/template"
 )
 
 type User struct {
 	name string
 }
 
+var tpls *template.Template
 var clientId string = "6827cba289b046ed823ed40ef537a468"
 var clientSecret string = "524e6d924d5548a999ce68acbe92a99d"
 var redirect string = "http://localhost:8080/profile"
@@ -27,19 +31,54 @@ type Song struct {
 	Artist string
 }
 
+func init() {
+	tpls = template.Must(template.ParseGlob("./static/templates/*"))
+}
+
 // TODO: play with channels to make a request to get your own profile after receiving a token
 // like a .then() chain - https://www.newline.co/courses/build-a-spotify-connected-app/implementing-the-authorization-code-flow
 func main() {
-	fs := http.FileServer(http.Dir("static/"))
-	http.Handle("/static/", http.StripPrefix("static", fs))
+	fs := http.FileServer(http.Dir("./static"))
+	http.Handle("/static/", http.StripPrefix("/static/", fs))
+	http.HandleFunc("/", startPage)
 	http.HandleFunc("/login", login)
 	http.HandleFunc("/profile", sendCode)
 	http.HandleFunc("/refresh", refreshToken)
 	http.HandleFunc("/request-page", requestInfo)
 	http.HandleFunc("/send-list", getList)
+	http.HandleFunc("/retrieve-songs", getFilePage)
+	http.HandleFunc("/get-file", sendFile)
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
 		log.Fatal(err, "launching server error")
+	}
+}
+
+func sendFile(w http.ResponseWriter, r *http.Request) {
+	file, err := ioutil.ReadFile("songs.csv")
+	if err != nil {
+		log.Fatal(err, "file reading error")
+	}
+	b := bytes.NewBuffer(file)
+	w.Header().Set("Content-Type", "text/csv")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	_, writeErr := b.WriteTo(w)
+	if writeErr != nil {
+		log.Fatal(writeErr, "writing file error")
+	}
+}
+
+func getFilePage(w http.ResponseWriter, r *http.Request) {
+	err := tpls.ExecuteTemplate(w, "retrieve.html", nil)
+	if err != nil {
+		log.Fatal(err, "rendering page error")
+	}
+}
+
+func startPage(w http.ResponseWriter, r *http.Request) {
+	err := tpls.ExecuteTemplate(w, "index.html", nil)
+	if err != nil {
+		log.Fatal(err, "executing template error")
 	}
 }
 
@@ -53,8 +92,6 @@ func outputFile() {
 	w := csv.NewWriter(file)
 	defer w.Flush()
 
-	fmt.Println(len(songs))
-	fmt.Println(songs)
 	for _, song := range songs {
 		str := []string{"Title: " + song.Title, "Artist: " + song.Artist}
 		err := w.Write(str)

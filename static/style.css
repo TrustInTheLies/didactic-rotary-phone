@@ -11,8 +11,8 @@ body {
     sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol",
     "Noto Color Emoji";
   font-size: 16px;
-  background-color: #193a46;
-  color: #196d7a;
+  /*background-color: #193a46;*/
+  /*color: #196d7a;*/
 }
 
 h1 {
@@ -25,7 +25,16 @@ p {
 }
 
 a {
-  color: #197a52;
+  color: black;
   text-decoration: none;
   font-size: 24px;
+}
+
+.btn {
+  padding: 20px;
+  font-size: 24px;
+  /*color: #0e2f2e;*/
+  /*background-color: #277381;*/
+  border: none;
+  border-radius: 10px;
 }
