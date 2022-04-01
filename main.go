@@ -38,6 +38,7 @@ func init() {
 // TODO: play with channels to make a request to get your own profile after receiving a token
 // like a .then() chain - https://www.newline.co/courses/build-a-spotify-connected-app/implementing-the-authorization-code-flow
 func main() {
+	port := os.Getenv("PORT")
 	fs := http.FileServer(http.Dir("./static"))
 	http.Handle("/static/", http.StripPrefix("/static/", fs))
 	http.HandleFunc("/", startPage)
@@ -48,7 +49,7 @@ func main() {
 	http.HandleFunc("/send-list", getList)
 	http.HandleFunc("/retrieve-songs", getFilePage)
 	http.HandleFunc("/get-file", sendFile)
-	err := http.ListenAndServe(":8080", nil)
+	err := http.ListenAndServe(":"+port, nil)
 	if err != nil {
 		log.Fatal(err, "launching server error")
 	}
